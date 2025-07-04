@@ -105,7 +105,7 @@ struct EditPostView: View {
             id: post.id,
             userId: post.userId,
             username: post.username,
-            photos: imageURLs,
+            photos: imageURLs ?? [],
             mainCaption: mainCaption,
             detailedCaption: detailedCaption,
             subject: subject,
@@ -125,7 +125,7 @@ struct EditPostView: View {
 #Preview {
     EditPostView(post: Post(
         id: UUID(),
-        userId: "userId",
+        userId: UUID(),
         username: "Sample User",
         photos: [],
         mainCaption: "Sample Post",

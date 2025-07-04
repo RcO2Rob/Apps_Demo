@@ -1,9 +1,10 @@
 import SwiftUI
 
 struct MessagesView: View {
-    @State private var selectedUserId: String? = nil
+    @State private var selectedUserId: UUID? = nil
     @State private var messageText: String = ""
     @State private var messages: [Message] = sampleMessages
+    @EnvironmentObject var userStore: UserStore
     
     var body: some View {
         NavigationView {
@@ -34,7 +35,7 @@ struct MessagesView: View {
         
         let newMessage = Message(
             id: UUID(),
-            senderId: "currentUser", // Replace with actual current user ID
+            senderId: UUID(), // Replace with actual current user ID
             receiverId: selectedUserId,
             text: messageText,
             imageURL: nil,
@@ -48,7 +49,7 @@ struct MessagesView: View {
 }
 
 struct ChatView: View {
-    let userId: String
+    let userId: UUID
     let messages: [Message]
     @Binding var messageText: String
     let onSend: () -> Void
@@ -125,19 +126,20 @@ struct ChatView: View {
 
 struct MessageBubble: View {
     let message: Message
+    @EnvironmentObject var userStore: UserStore
     
     var body: some View {
         HStack {
-            if message.senderId == "currentUser" {
+            if message.senderId == userStore.currentUser?.id {
                 Spacer()
             }
             
-            VStack(alignment: message.senderId == "currentUser" ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: message.senderId == userStore.currentUser?.id ? .trailing : .leading, spacing: 4) {
                 Text(message.text)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(message.senderId == "currentUser" ? Color.blue : Color(.systemGray5))
-                    .foregroundColor(message.senderId == "currentUser" ? .white : .primary)
+                    .background(message.senderId == userStore.currentUser?.id ? Color.blue : Color(.systemGray5))
+                    .foregroundColor(message.senderId == userStore.currentUser?.id ? .white : .primary)
                     .cornerRadius(18)
                 
                 Text(formatTime(message.createdAt))
@@ -146,7 +148,7 @@ struct MessageBubble: View {
                     .padding(.horizontal, 4)
             }
             
-            if message.senderId != "currentUser" {
+            if message.senderId != userStore.currentUser?.id {
                 Spacer()
             }
         }
@@ -211,7 +213,7 @@ struct ConversationsList: View {
         .navigationBarTitleDisplayMode(.large)
     }
     
-    private func getLastMessage(for userId: String) -> Message? {
+    private func getLastMessage(for userId: UUID) -> Message? {
         return messages
             .filter { $0.senderId == userId || $0.receiverId == userId }
             .sorted { $0.createdAt > $1.createdAt }
@@ -237,42 +239,42 @@ struct ConversationsList: View {
 
 // Sample Data
 let sampleUsers: [User] = [
-    User(id: "user1", username: "Alex Johnson", profilePicture: nil, bio: "Gym enthusiast looking for workout buddies"),
-    User(id: "user2", username: "Sarah Chen", profilePicture: nil, bio: "UCL student studying Computer Science"),
-    User(id: "user3", username: "Mike Rodriguez", profilePicture: nil, bio: "Frontend developer, hackathon lover"),
-    User(id: "user4", username: "Emma Wilson", profilePicture: nil, bio: "Guitarist and vocalist, indie music fan"),
-    User(id: "user5", username: "David Thompson", profilePicture: nil, bio: "Amateur photographer, nature lover"),
-    User(id: "user6", username: "Lisa Park", profilePicture: nil, bio: "Vegan chef, recipe collector")
+    User(id: UUID(), username: "Alex Johnson", profilePicture: nil, bio: "Gym enthusiast looking for workout buddies"),
+    User(id: UUID(), username: "Sarah Chen", profilePicture: nil, bio: "UCL student studying Computer Science"),
+    User(id: UUID(), username: "Mike Rodriguez", profilePicture: nil, bio: "Frontend developer, hackathon lover"),
+    User(id: UUID(), username: "Emma Wilson", profilePicture: nil, bio: "Guitarist and vocalist, indie music fan"),
+    User(id: UUID(), username: "David Thompson", profilePicture: nil, bio: "Amateur photographer, nature lover"),
+    User(id: UUID(), username: "Lisa Park", profilePicture: nil, bio: "Vegan chef, recipe collector")
 ]
 
 let sampleMessages: [Message] = [
     // Conversation with Alex
-    Message(id: UUID(), senderId: "user1", receiverId: "currentUser", text: "Hey! I saw your gym post. Are you still looking for a workout partner?", imageURL: nil, createdAt: Date().addingTimeInterval(-3600), isRead: true),
-    Message(id: UUID(), senderId: "currentUser", receiverId: "user1", text: "Yes! I'm still looking. What's your schedule like?", imageURL: nil, createdAt: Date().addingTimeInterval(-3500), isRead: true),
-    Message(id: UUID(), senderId: "user1", receiverId: "currentUser", text: "I usually go in the mornings around 7 AM. Does that work for you?", imageURL: nil, createdAt: Date().addingTimeInterval(-3400), isRead: true),
-    Message(id: UUID(), senderId: "currentUser", receiverId: "user1", text: "Perfect! Let's meet tomorrow at PureGym?", imageURL: nil, createdAt: Date().addingTimeInterval(-3300), isRead: false),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Hey! I saw your gym post. Are you still looking for a workout partner?", imageURL: nil, createdAt: Date().addingTimeInterval(-3600), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Yes! I'm still looking. What's your schedule like?", imageURL: nil, createdAt: Date().addingTimeInterval(-3500), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "I usually go in the mornings around 7 AM. Does that work for you?", imageURL: nil, createdAt: Date().addingTimeInterval(-3400), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Perfect! Let's meet tomorrow at PureGym?", imageURL: nil, createdAt: Date().addingTimeInterval(-3300), isRead: false),
     
     // Conversation with Sarah
-    Message(id: UUID(), senderId: "user2", receiverId: "currentUser", text: "Hi! I'm also studying for ECON001 finals. Want to form a study group?", imageURL: nil, createdAt: Date().addingTimeInterval(-7200), isRead: true),
-    Message(id: UUID(), senderId: "currentUser", receiverId: "user2", text: "That would be great! When are you free to meet?", imageURL: nil, createdAt: Date().addingTimeInterval(-7100), isRead: true),
-    Message(id: UUID(), senderId: "user2", receiverId: "currentUser", text: "I'm free tomorrow afternoon. Student center at 2 PM?", imageURL: nil, createdAt: Date().addingTimeInterval(-7000), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Hi! I'm also studying for ECON001 finals. Want to form a study group?", imageURL: nil, createdAt: Date().addingTimeInterval(-7200), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "That would be great! When are you free to meet?", imageURL: nil, createdAt: Date().addingTimeInterval(-7100), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "I'm free tomorrow afternoon. Student center at 2 PM?", imageURL: nil, createdAt: Date().addingTimeInterval(-7000), isRead: true),
     
     // Conversation with Mike
-    Message(id: UUID(), senderId: "user3", receiverId: "currentUser", text: "Hey! I'm interested in your hackathon project. What tech stack are you thinking?", imageURL: nil, createdAt: Date().addingTimeInterval(-10800), isRead: true),
-    Message(id: UUID(), senderId: "currentUser", receiverId: "user3", text: "I'm thinking React Native for mobile and Node.js backend. What about you?", imageURL: nil, createdAt: Date().addingTimeInterval(-10700), isRead: true),
-    Message(id: UUID(), senderId: "user3", receiverId: "currentUser", text: "Perfect! I'm experienced with both. Let's discuss the project idea?", imageURL: nil, createdAt: Date().addingTimeInterval(-10600), isRead: false),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Hey! I'm interested in your hackathon project. What tech stack are you thinking?", imageURL: nil, createdAt: Date().addingTimeInterval(-10800), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "I'm thinking React Native for mobile and Node.js backend. What about you?", imageURL: nil, createdAt: Date().addingTimeInterval(-10700), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Perfect! I'm experienced with both. Let's discuss the project idea?", imageURL: nil, createdAt: Date().addingTimeInterval(-10600), isRead: false),
     
     // Conversation with Emma
-    Message(id: UUID(), senderId: "user4", receiverId: "currentUser", text: "Hi! I play drums and I'm looking for people to jam with. What kind of music do you play?", imageURL: nil, createdAt: Date().addingTimeInterval(-14400), isRead: true),
-    Message(id: UUID(), senderId: "currentUser", receiverId: "user4", text: "I play guitar and sing! Mostly indie and rock. What about you?", imageURL: nil, createdAt: Date().addingTimeInterval(-14300), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Hi! I play drums and I'm looking for people to jam with. What kind of music do you play?", imageURL: nil, createdAt: Date().addingTimeInterval(-14400), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "I play guitar and sing! Mostly indie and rock. What about you?", imageURL: nil, createdAt: Date().addingTimeInterval(-14300), isRead: true),
     
     // Conversation with David
-    Message(id: UUID(), senderId: "user5", receiverId: "currentUser", text: "Hey! I'm also into photography. Want to go to Greenwich Park this weekend?", imageURL: nil, createdAt: Date().addingTimeInterval(-18000), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Hey! I'm also into photography. Want to go to Greenwich Park this weekend?", imageURL: nil, createdAt: Date().addingTimeInterval(-18000), isRead: true),
     
     // Conversation with Lisa
-    Message(id: UUID(), senderId: "user6", receiverId: "currentUser", text: "Hi! I love vegan cooking too. Want to share some recipes?", imageURL: nil, createdAt: Date().addingTimeInterval(-21600), isRead: true),
-    Message(id: UUID(), senderId: "currentUser", receiverId: "user6", text: "Absolutely! Do you have any favorite vegan restaurants in Camden?", imageURL: nil, createdAt: Date().addingTimeInterval(-21500), isRead: true),
-    Message(id: UUID(), senderId: "user6", receiverId: "currentUser", text: "Yes! There's this amazing place called 'Green Earth'. We should go together!", imageURL: nil, createdAt: Date().addingTimeInterval(-21400), isRead: false)
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Hi! I love vegan cooking too. Want to share some recipes?", imageURL: nil, createdAt: Date().addingTimeInterval(-21600), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Absolutely! Do you have any favorite vegan restaurants in Camden?", imageURL: nil, createdAt: Date().addingTimeInterval(-21500), isRead: true),
+    Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Yes! There's this amazing place called 'Green Earth'. We should go together!", imageURL: nil, createdAt: Date().addingTimeInterval(-21400), isRead: false)
 ]
 
 #Preview {

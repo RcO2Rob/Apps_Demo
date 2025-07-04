@@ -19,7 +19,7 @@ struct PostCreationView: View {
     @State private var showingLocationPicker = false
     @Binding var shouldNavigateToFeed: Bool
     @Binding var showingCreateOptions: Bool
-
+    
     private func saveImageToFileSystem(image: UIImage) -> URL? {
         guard let data = image.jpegData(compressionQuality: 0.8) else { return nil }
         
@@ -35,13 +35,13 @@ struct PostCreationView: View {
             return nil
         }
     }
-
+    
     private func createPost() {
         let imageURLs = selectedImages.compactMap { saveImageToFileSystem(image: $0)?.absoluteString }
         
         let newPost = Post(
             id: UUID(),
-            userId: userStore.currentUser?.id ?? "",
+            userId: userStore.currentUser?.id ?? UUID(),
             username: userStore.currentUser?.username ?? "Unknown User",
             photos: imageURLs,
             mainCaption: title,
@@ -55,7 +55,16 @@ struct PostCreationView: View {
             isPrivate: false,
             isPinned: false
         )
+        //show in the App
         postStore.createPost(newPost)
+        Task {
+            do {
+                try await SupabaseManager.shared.savePost(newPost)
+                dismiss()         // 保存成功后回到上一页
+            } catch {
+                print("保存失败：\(error.localizedDescription)")
+            }
+        }
         showSuccessAlert = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             shouldNavigateToFeed = true
@@ -74,7 +83,7 @@ struct PostCreationView: View {
         currentImageIndex = 0
         selectedLocation = nil
     }
-
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -303,19 +312,22 @@ struct PostCreationView: View {
             }
         }
     }
+    
+    
+    
+    
+//    #Preview {
+//        PostCreationView(shouldNavigateToFeed: .constant(false), showingCreateOptions: .constant(false))
+//            .environmentObject(PostStore())
+//            .environmentObject(UserStore())
+//    }
+//    
+//    // Helper to dismiss keyboard
+//#if canImport(UIKit)
+//    extension View {
+//        func hideKeyboard() {
+//            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+//        }
+//    }
+//#endif
 }
-
-#Preview {
-    PostCreationView(shouldNavigateToFeed: .constant(false), showingCreateOptions: .constant(false))
-        .environmentObject(PostStore())
-        .environmentObject(UserStore())
-}
-
-// Helper to dismiss keyboard
-#if canImport(UIKit)
-extension View {
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-}
-#endif 

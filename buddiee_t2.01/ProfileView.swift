@@ -165,7 +165,7 @@ struct ProfileView: View {
     }
     
     private var userPosts: [Post] {
-        let posts = postStore.getUserPosts(for: user.id)
+        let posts = postStore.getUserPosts(for: user.id.uuidString)
         return posts.sorted { post1, post2 in
             // Sort by pinned status first, then by creation date
             if post1.isPinned && !post2.isPinned {
@@ -179,7 +179,7 @@ struct ProfileView: View {
     }
     
     private var pinnedPost: Post? {
-        postStore.getPinnedPost(for: user.id)
+        postStore.getPinnedPost(for: user.id.uuidString)
     }
     
     var body: some View {
@@ -382,7 +382,7 @@ struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             ProfileView(user: User(
-                id: "userId",
+                id: UUID(),
                 username: "TestUser",
                 profilePicture: nil,
                 bio: "Test bio"

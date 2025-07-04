@@ -82,7 +82,7 @@ struct CommentRowView: View {
 #Preview {
     CommentsView(post: Post(
         id: UUID(),
-        userId: "sampleUserId",
+        userId: UUID(),
         username: "Sample User",
         photos: ["sample_image_url"],
         mainCaption: "Sample Post",

@@ -4,7 +4,7 @@ import PhotosUI
 struct EditProfileView: View {
     let user: User
     @Environment(\.dismiss) private var dismiss
-    
+    @EnvironmentObject var userStore: UserStore
     @State private var username: String
     @State private var bio: String
     @State private var photoPickerItem: PhotosPickerItem?
@@ -76,6 +76,7 @@ struct EditProfileView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveChanges()
+                        //updateChangesToDatabase()
                     }
                 }
             }
@@ -102,14 +103,25 @@ struct EditProfileView: View {
             bio: bio
         )
         print("Saving updated user: \(updatedUser)")
-        
+        userStore.updateProfile(updatedUser)
+        updateChangesToDatabase(updatedUser)
         dismiss()
+    }
+    
+    private func updateChangesToDatabase(_ updatedUser: User) {
+        Task {
+            do{
+                try await SupabaseManager.shared.saveUerInfo(updatedUser)
+            }catch{
+                print("error ",error)
+            }
+        }
     }
 }
 
 #Preview {
     EditProfileView(user: User(
-        id: "userId",
+        id: UUID(),
         username: "TestUser",
         profilePicture: nil,
         bio: "Test bio"

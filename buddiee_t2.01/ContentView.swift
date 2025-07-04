@@ -82,12 +82,22 @@ struct ContentView: View {
                     Text("Messages")
                 }
                 .tag(3)
-            ProfileView(user: userStore.currentUser ?? User(id: "default", username: "Default User", profilePicture: nil, bio: "Default bio"))
-                .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("Profile")
-                }
-                .tag(4)
+            if let user = userStore.currentUser{
+                ProfileView(user: user)
+                    .tabItem {
+                        Image(systemName: "person.fill")
+                        Text("Profile")
+                    }
+                    .tag(4)
+                
+            } else {
+                Text("请先登录")
+                    .tabItem {
+                        Image(systemName: "person.fill")
+                        Text("Profile")
+                    }
+                    .tag(4)
+            }
         }
         .environmentObject(postStore)
         .environmentObject(userStore)
@@ -237,7 +247,7 @@ struct TextOnlyPostView: View {
     private func createTextPost() {
         let newPost = Post(
             id: UUID(),
-            userId: userStore.currentUser?.id ?? "",
+            userId: userStore.currentUser?.id ?? UUID(),
             username: userStore.currentUser?.username ?? "Unknown User",
             photos: [],
             mainCaption: title,

@@ -7,11 +7,11 @@ struct PostCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Image Carousel (if images exist)
-            if !post.photos.isEmpty {
+            if let photos = post.photos, !photos.isEmpty {
                 TabView(selection: $currentImageIndex) {
-                    ForEach(0..<post.photos.count, id: \.self) {
+                    ForEach(0..<photos.count, id: \.self) {
                         index in
-                        let photoURL = post.photos[index]
+                        let photoURL = photos[index]
                         if photoURL.hasPrefix("file://") {
                             // Handle local file URLs
                             if let url = URL(string: photoURL),
@@ -110,7 +110,7 @@ struct PostCard_Previews: PreviewProvider {
     static var previews: some View {
         PostCard(post: Post(
             id: UUID(),
-            userId: "userId",
+            userId: UUID(),
             username: "Sample User",
             photos: [],
             mainCaption: "Sample Post",

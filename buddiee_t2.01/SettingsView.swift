@@ -107,6 +107,18 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section {
+                    Button("Log out"){
+                        Task{
+                            do{
+                                try await SupabaseManager.shared.logOut()
+                            }catch{
+                                print("error",error)
+                            }
+                        }
+                        
+                    }
+                }
                 // Danger Zone
                 Section {
                     Button("Delete Account", role: .destructive) {

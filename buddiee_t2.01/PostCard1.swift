@@ -14,7 +14,7 @@ struct PostCard1: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Cover Image
-            if let firstImage = post.photos.first {
+            if let photos = post.photos,let firstImage = photos.first {
                 if firstImage.hasPrefix("file://") {
                     // Handle local file URLs
                     if let url = URL(string: firstImage),
@@ -196,7 +196,7 @@ struct PostCard1_Previews: PreviewProvider {
     static var previews: some View {
         PostCard1(post: Post(
             id: UUID(),
-            userId: "userId",
+            userId: UUID(),
             username: "Sample User",
             photos: ["https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=2787&auto=format&fit=crop"],
             mainCaption: "Sample Post",

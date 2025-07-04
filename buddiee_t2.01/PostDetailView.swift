@@ -13,9 +13,9 @@ struct PostDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Cover Image(s) - TabView for multiple photos
-                if !post.photos.isEmpty {
+                if let photos = post.photos, !photos.isEmpty {
                     TabView {
-                        ForEach(post.photos, id: \.self) { photoURL in
+                        ForEach(photos, id: \.self) { photoURL in
                             if photoURL.hasPrefix("file://") {
                                 // Handle local file URLs
                                 if let url = URL(string: photoURL),
@@ -130,7 +130,7 @@ struct PostDetailView: View {
         let comment = Comment(
             id: UUID(),
             postId: post.id,
-            userId: userStore.currentUser?.id ?? "",
+            userId: userStore.currentUser?.id ?? UUID(),
             username: userStore.currentUser?.username ?? "Unknown",
             text: newComment,
             createdAt: Date()
@@ -184,7 +184,7 @@ struct CommentView: View {
     NavigationView {
         PostDetailView(post: Post(
             id: UUID(),
-            userId: "userId",
+            userId: UUID(),
             username: "Sample User",
             photos: [],
             mainCaption: "Sample Post",

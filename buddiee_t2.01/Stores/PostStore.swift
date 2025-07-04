@@ -8,8 +8,10 @@ class PostStore: ObservableObject {
     @Published var isStatusVisible: Bool = false
     @Published var statusMessage: String = ""
     
+    
     private let userDefaults = UserDefaults.standard
     private let postsKey = "savedPosts"
+    private let currentUser = UserStore().currentUser
     
     init() {
         // Force clear all stored posts and reset to clean sample data
@@ -19,15 +21,18 @@ class PostStore: ObservableObject {
     
     private func createSamplePosts() {
         self.posts = [
-            Post(id: UUID(), userId: "1", username: "Alex", photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"], mainCaption: "Gym buddy, London", detailedCaption: "Looking for a consistent gym partner to go to PureGym with 3-4 times a week. Let's motivate each other!", subject: "Gym", location: "London", userLocation: "PureGym", createdAt: Date().addingTimeInterval(-86400 * 2), likes: 15, comments: [], isPrivate: false, isPinned: false),
-            Post(id: UUID(), userId: "2", username: "Sarah", photos: ["https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop"], mainCaption: "UCL Study Group", detailedCaption: "Finals are coming up! Need a few people to review lecture notes and do past papers for ECON001. We can meet at the student center.", subject: "Study", location: "UCL, London", userLocation: "Student Center", createdAt: Date().addingTimeInterval(-86400 * 1), likes: 8, comments: [], isPrivate: false, isPinned: false),
-            Post(id: UUID(), userId: "3", username: "Mike", photos: ["https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=300&fit=crop"], mainCaption: "Hackathon Teammate Wanted", detailedCaption: "I'm a frontend dev looking for a backend dev and a UI/UX designer for the upcoming HackLondon event. Let's build something amazing!", subject: "Coding", location: "Imperial College", userLocation: "Imperial College", createdAt: Date(), likes: 23, comments: [], isPrivate: false, isPinned: false),
-            Post(id: UUID(), userId: "4", username: "Emma", photos: ["https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop"], mainCaption: "Music Jam Session", detailedCaption: "Guitarist and vocalist looking for a drummer and a bassist to jam with. I play mostly indie and rock. Have a small studio space we can use.", subject: "Music", location: "Shoreditch", userLocation: "Shoreditch", createdAt: Date().addingTimeInterval(-86400 * 5), likes: 30, comments: [], isPrivate: false, isPinned: false),
-            Post(id: UUID(), userId: "5", username: "David", photos: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop"], mainCaption: "Photography walk", detailedCaption: "Amateur photographer looking for someone to explore and take photos with this weekend. Thinking of going to Greenwich Park.", subject: "Photography", location: "Greenwich", userLocation: "Greenwich Park", createdAt: Date().addingTimeInterval(-86400 * 3), likes: 12, comments: [], isPrivate: false, isPinned: false),
-            Post(id: UUID(), userId: "6", username: "Lisa", photos: ["https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop"], mainCaption: "Vegan recipe exchange", detailedCaption: "Anyone else into vegan cooking? Would love to meet up, share recipes, and maybe cook together. All levels welcome!", subject: "Food", location: "Camden", userLocation: "Camden Market", createdAt: Date().addingTimeInterval(-86400 * 4), likes: 18, comments: [], isPrivate: false, isPinned: false)
+            Post(id: UUID(), userId: UUID(), username: "Alex", photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"], mainCaption: "Gym buddy, London", detailedCaption: "Looking for a consistent gym partner to go to PureGym with 3-4 times a week. Let's motivate each other!", subject: "Gym", location: "London", userLocation: "PureGym", createdAt: Date().addingTimeInterval(-86400 * 2), likes: 15, comments: [], isPrivate: false, isPinned: false),
+            Post(id: UUID(), userId: UUID(), username: "Sarah", photos: ["https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop"], mainCaption: "UCL Study Group", detailedCaption: "Finals are coming up! Need a few people to review lecture notes and do past papers for ECON001. We can meet at the student center.", subject: "Study", location: "UCL, London", userLocation: "Student Center", createdAt: Date().addingTimeInterval(-86400 * 1), likes: 8, comments: [], isPrivate: false, isPinned: false),
+            Post(id: UUID(), userId: UUID(), username: "Mike", photos: ["https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=300&fit=crop"], mainCaption: "Hackathon Teammate Wanted", detailedCaption: "I'm a frontend dev looking for a backend dev and a UI/UX designer for the upcoming HackLondon event. Let's build something amazing!", subject: "Coding", location: "Imperial College", userLocation: "Imperial College", createdAt: Date(), likes: 23, comments: [], isPrivate: false, isPinned: false),
+            Post(id: UUID(), userId: UUID(), username: "Emma", photos: ["https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop"], mainCaption: "Music Jam Session", detailedCaption: "Guitarist and vocalist looking for a drummer and a bassist to jam with. I play mostly indie and rock. Have a small studio space we can use.", subject: "Music", location: "Shoreditch", userLocation: "Shoreditch", createdAt: Date().addingTimeInterval(-86400 * 5), likes: 30, comments: [], isPrivate: false, isPinned: false),
+            Post(id: UUID(), userId: UUID(), username: "David", photos: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop"], mainCaption: "Photography walk", detailedCaption: "Amateur photographer looking for someone to explore and take photos with this weekend. Thinking of going to Greenwich Park.", subject: "Photography", location: "Greenwich", userLocation: "Greenwich Park", createdAt: Date().addingTimeInterval(-86400 * 3), likes: 12, comments: [], isPrivate: false, isPinned: false),
+            Post(id: UUID(), userId: UUID(), username: "Lisa", photos: ["https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop"], mainCaption: "Vegan recipe exchange", detailedCaption: "Anyone else into vegan cooking? Would love to meet up, share recipes, and maybe cook together. All levels welcome!", subject: "Food", location: "Camden", userLocation: "Camden Market", createdAt: Date().addingTimeInterval(-86400 * 4), likes: 18, comments: [], isPrivate: false, isPinned: false)
         ]
         savePosts()
         print("DEBUG: Sample posts created successfully")
+        fetchPublicPostsFromDatabase()
+       
+        
     }
     
     // MARK: - Storage Functions
@@ -45,13 +50,38 @@ class PostStore: ObservableObject {
     }
     
     // MARK: - Post Management Functions
-    func fetchPosts() {
-        // Posts are already loaded from UserDefaults
+    func fetchPublicPostsFromDatabase() {
+        Task{
+            do{
+                let results = try await SupabaseManager.shared.fetchAllPosts()
+                results.forEach(createPost(_:))
+                
+                print(results)
+                print("fetch successfully")
+            }catch{
+                print("fetchPostsFromDatabase error:", error)
+            }
+        }
+    }
+    
+    func fetchUserPostsFromDatabase(_ userId : UUID) {
+        Task{
+            do{
+                let results = try await SupabaseManager.shared.fetchUserPosts(userId)
+                results.forEach(createPost(_:))
+                
+                print(results)
+                print("fetch successfully")
+            }catch{
+                print("fetchPostsFromDatabase error:", error)
+            }
+        }
     }
     
     func createPost(_ post: Post) {
         print("DEBUG: Creating post: \(post)")
         print("DEBUG: Posts count before: \(posts.count)")
+        
         posts.insert(post, at: 0)
         print("DEBUG: Posts count after: \(posts.count)")
         print("DEBUG: All posts after creation: \(posts.map { $0.mainCaption })")
@@ -67,7 +97,7 @@ class PostStore: ObservableObject {
                 id: post.id,
                 userId: post.userId,
                 username: post.username,
-                photos: post.photos,
+                photos: post.photos ?? [],
                 mainCaption: post.mainCaption,
                 detailedCaption: post.detailedCaption,
                 subject: post.subject,
@@ -135,7 +165,7 @@ class PostStore: ObservableObject {
     }
     
     func getUserPosts(for userId: String) -> [Post] {
-        let userPosts = posts.filter { $0.userId == userId }
+        let userPosts = posts.filter { $0.userId.uuidString == userId }
         print("DEBUG: getUserPosts for \(userId): \(userPosts.map { $0.mainCaption })")
         return userPosts
     }
@@ -147,7 +177,7 @@ class PostStore: ObservableObject {
     }
     
     func getPinnedPost(for userId: String) -> Post? {
-        return posts.first { $0.userId == userId && $0.isPinned }
+        return posts.first { $0.userId.uuidString == userId && $0.isPinned }
     }
     
     // MARK: - Refresh Function
