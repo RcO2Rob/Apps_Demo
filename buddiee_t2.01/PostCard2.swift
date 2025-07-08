@@ -5,7 +5,7 @@
 //  Created by Helen Fung on 07/06/2025.
 import SwiftUI
 
-struct PostCard1: View {
+struct PostCard2: View {
     let post: Post
     @EnvironmentObject private var postStore: PostStore
     @State private var showingDetail = false
@@ -13,7 +13,7 @@ struct PostCard1: View {
     
     @State private var selectedUserId: UUID? = nil
     @State private var showMessagesView = false
-    let onAvatarTap: (UUID) -> Void
+    //let onAvatarTap: (UUID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -70,7 +70,6 @@ struct PostCard1: View {
                 // MARK: - Header: User Info
                 HStack {
                     Button(action: {
-                        onAvatarTap(post.userId)
                     }){
                         Image(systemName: "person.circle.fill")
                             .resizable()
@@ -200,9 +199,9 @@ struct PostCard1: View {
 }
 
 // MARK: - Preview
-struct PostCard1_Previews: PreviewProvider {
+struct PostCard2_Previews: PreviewProvider {
     static var previews: some View {
-        PostCard1(post: Post(
+        PostCard2(post: Post(
             id: UUID(),
             userId: UUID(),
             username: "Sample User",
@@ -215,9 +214,7 @@ struct PostCard1_Previews: PreviewProvider {
             createdAt: Date(),
             likes: 10,
             comments: []
-        ),
-        onAvatarTap: { _ in } // ✅ 加这个，预览用不到逻辑，空闭包即可
-        )
+        ))
         .environmentObject(PostStore())
         .padding()
     }

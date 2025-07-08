@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 
+@MainActor
 class PostStore: ObservableObject {
     @Published var posts: [Post] = []
     @Published var userPosts: [Post] = []
@@ -79,12 +80,12 @@ class PostStore: ObservableObject {
     }
     
     func createPost(_ post: Post) {
-        print("DEBUG: Creating post: \(post)")
+        //print("DEBUG: Creating post: \(post)")
         print("DEBUG: Posts count before: \(posts.count)")
         
         posts.insert(post, at: 0)
-        print("DEBUG: Posts count after: \(posts.count)")
-        print("DEBUG: All posts after creation: \(posts.map { $0.mainCaption })")
+       //print("DEBUG: Posts count after: \(posts.count)")
+        //print("DEBUG: All posts after creation: \(posts.map { $0.mainCaption })")
         savePosts()
         updateUserPosts()
         // Force UI refresh
@@ -166,13 +167,13 @@ class PostStore: ObservableObject {
     
     func getUserPosts(for userId: String) -> [Post] {
         let userPosts = posts.filter { $0.userId.uuidString == userId }
-        print("DEBUG: getUserPosts for \(userId): \(userPosts.map { $0.mainCaption })")
+        //print("DEBUG: getUserPosts for \(userId): \(userPosts.map { $0.mainCaption })")
         return userPosts
     }
     
     func getPublicPosts() -> [Post] {
         let publicPosts = posts.filter { !$0.isPrivate }
-        print("DEBUG: getPublicPosts: \(publicPosts.map { $0.mainCaption })")
+        //print("DEBUG: getPublicPosts: \(publicPosts.map { $0.mainCaption })")
         return publicPosts
     }
     

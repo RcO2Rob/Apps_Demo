@@ -9,7 +9,9 @@
 import SwiftUI
 
 struct SignUpView: View {
-    @EnvironmentObject private var supabase: SupabaseManager
+    //@EnvironmentObject private var supabase: SupabaseManager
+    @State private var showProfileSetup = false
+    @StateObject private var supabase = SupabaseManager.shared
 
     @State private var email = ""
     @State private var password = ""
@@ -72,16 +74,10 @@ struct SignUpView: View {
                 Spacer()
             }
             .navigationBarTitleDisplayMode(.inline)
-//            .toolbar {
-//                // 添加一个“返回”按钮
-//                ToolbarItem(placement: .navigationBarLeading) {
-//                    Button("Cancel") {
-//                        // 假设你在 login 页面里是 push，这里用 pop
-//                        // 如果是 sheet，则调用 dismiss()
-//                        UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: true)
-//                    }
-//                }
-//            }
+            .fullScreenCover(isPresented: $showProfileSetup) {
+                ProfileSetupView()
+            }
+
         }
     }
 
@@ -92,11 +88,14 @@ struct SignUpView: View {
         Task {
             do {
                 try await SupabaseManager.shared.signUp(email: email, password: password)
-                // 成功后 supabase.currentUser 已被设置，根视图会自动切换
+                // 注册成功后，显示资料设置页面
+                
             } catch {
-                errorMessage = error.localizedDescription
+                //
             }
-            isLoading = false
+            await MainActor.run {
+                isLoading = false
+            }
         }
     }
 }

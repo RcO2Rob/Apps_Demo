@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PostsFeedView: View {
     @EnvironmentObject var postStore: PostStore
+    let onAvatarTap: (UUID) -> Void
     
     private var sortedPublicPosts: [Post] {
         let publicPosts = postStore.getPublicPosts()
@@ -22,7 +23,9 @@ struct PostsFeedView: View {
             LazyVStack(spacing: 20) {
                 ForEach(sortedPublicPosts) { post in
                     NavigationLink(destination: PostDetailView(post: post)) {
-                        PostCard1(post: post)
+                        PostCard1(post: post, onAvatarTap: {userId in
+                            onAvatarTap(userId)  // 👈 继续传给 PostsFeedView 或 ContentView
+                        })
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -62,9 +65,9 @@ struct PostsFeedView: View {
     }
 }
 
-#Preview {
-    NavigationView {
-        PostsFeedView()
-            .environmentObject(PostStore())
-    }
-} 
+//#Preview {
+//    NavigationView {
+//        PostsFeedView()
+//            .environmentObject(PostStore())
+//    }
+//} 

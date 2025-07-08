@@ -1,59 +1,94 @@
 import SwiftUI
+import Supabase
 
 struct MessagesView: View {
+    var initialUserId: UUID?
     @State private var selectedUserId: UUID? = nil
     @State private var messageText: String = ""
-    @State private var messages: [Message] = sampleMessages
+    //@State private var messages: [Message] = []
     @EnvironmentObject var userStore: UserStore
+    @EnvironmentObject var messageStore: MessageStore
+    
+    
+    
     
     var body: some View {
         NavigationView {
             Group {
                 if let selectedUserId = selectedUserId {
+                    
                     ChatView(
                         userId: selectedUserId,
-                        messages: messages.filter { $0.senderId == selectedUserId || $0.receiverId == selectedUserId },
+                        messages: messageStore.messages.filter { $0.sender == selectedUserId || $0.receiver == selectedUserId },
                         messageText: $messageText,
                         onSend: sendMessage,
                         onBack: { self.selectedUserId = nil }
                     )
                 } else {
                     ConversationsList(
-                        conversations: sampleUsers,
-                        messages: messages,
+                        conversations: messageStore.user,
+                        messages: messageStore.messages,
+                        initialUserId: initialUserId,
                         onSelectUser: { user in
                             self.selectedUserId = user.id
                         }
                     )
                 }
             }
+            .onAppear(perform: messageStore.fetchMessages)
         }
+        .task {
+            if selectedUserId == nil, let id = initialUserId {
+                selectedUserId = id
+            }
+            //判断是否首次打开聊天窗口
+            if let userId = initialUserId,
+               !messageStore.user.contains(where: { $0.id == userId }) {
+                do {
+                    let user = try await SupabaseManager.shared.fetchUserProfile(userId)
+                    messageStore.user.append(user)
+                } catch {
+                    print("❌ Failed to fetch user profile:", error)
+                }
+            }
+        }
+
     }
+    
     
     private func sendMessage() {
         guard !messageText.isEmpty, let selectedUserId = selectedUserId else { return }
         
         let newMessage = Message(
             id: UUID(),
-            senderId: UUID(), // Replace with actual current user ID
-            receiverId: selectedUserId,
+            sender: userStore.currentUser!.id, // Replace with actual current user ID
+            receiver: selectedUserId,
             text: messageText,
             imageURL: nil,
             createdAt: Date(),
             isRead: false
         )
         
-        messages.append(newMessage)
+        messageStore.messages.append(newMessage)
+        Task{
+            try await SupabaseManager.shared.sendMessage(newMessage)
+        }
         messageText = ""
     }
+    
 }
 
+
 struct ChatView: View {
+    
     let userId: UUID
     let messages: [Message]
+    //let initialUserId: UUID?
     @Binding var messageText: String
     let onSend: () -> Void
     let onBack: () -> Void
+    @EnvironmentObject var messageStore: MessageStore
+    
     
     var body: some View {
         VStack {
@@ -64,7 +99,7 @@ struct ChatView: View {
                         .foregroundColor(.primary)
                 }
                 
-                if let user = sampleUsers.first(where: { $0.id == userId }) {
+                if let user = messageStore.user.first(where: { $0.id == userId }) {
                     HStack(spacing: 8) {
                         Image(systemName: "person.circle.fill")
                             .resizable()
@@ -121,6 +156,13 @@ struct ChatView: View {
             .padding(.vertical)
             .background(Color(.systemBackground))
         }
+        .task {
+            do{
+                try await SupabaseManager.shared.ensureConversationExists(userId)
+            }catch{
+                print("❌:",error)
+            }
+        }
     }
 }
 
@@ -130,16 +172,16 @@ struct MessageBubble: View {
     
     var body: some View {
         HStack {
-            if message.senderId == userStore.currentUser?.id {
+            if message.sender == userStore.currentUser?.id {
                 Spacer()
             }
             
-            VStack(alignment: message.senderId == userStore.currentUser?.id ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: message.sender == userStore.currentUser?.id ? .trailing : .leading, spacing: 4) {
                 Text(message.text)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(message.senderId == userStore.currentUser?.id ? Color.blue : Color(.systemGray5))
-                    .foregroundColor(message.senderId == userStore.currentUser?.id ? .white : .primary)
+                    .background(message.sender == userStore.currentUser?.id ? Color.blue : Color(.systemGray5))
+                    .foregroundColor(message.sender == userStore.currentUser?.id ? .white : .primary)
                     .cornerRadius(18)
                 
                 Text(formatTime(message.createdAt))
@@ -148,7 +190,7 @@ struct MessageBubble: View {
                     .padding(.horizontal, 4)
             }
             
-            if message.senderId != userStore.currentUser?.id {
+            if message.sender != userStore.currentUser?.id {
                 Spacer()
             }
         }
@@ -159,12 +201,19 @@ struct MessageBubble: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+    
+    
 }
 
 struct ConversationsList: View {
     let conversations: [User]
     let messages: [Message]
+    let initialUserId: UUID?
     let onSelectUser: (User) -> Void
+    
+    @EnvironmentObject var userStore: UserStore
+    @EnvironmentObject var messageStore: MessageStore
+    
     
     var body: some View {
         List {
@@ -209,13 +258,56 @@ struct ConversationsList: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
+        
+        .task {
+            do {
+                guard let myId = userStore.currentUser?.id else {
+                    print("❌ 当前用户为空，跳过会话请求")
+                    return
+                }
+
+                let response = try await SupabaseManager.shared.client
+                    .from("conversation_list")
+                    .select("current_user, chat_user, created_at")
+                    .or("current_user.eq.\(myId),chat_user.eq.\(myId)")
+                    .order("created_at", ascending: false)
+                    .execute()
+
+
+                let data = response.data
+                let rawList = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
+                
+                print("✅✅✅:",rawList)
+
+                let opponentIds: [UUID] = rawList.compactMap { row in
+                    guard let currentUserString = row["current_user"] as? String,
+                          let chatUserString = row["chat_user"] as? String,
+                          let currentUser = UUID(uuidString: currentUserString),
+                          let chatUser = UUID(uuidString: chatUserString) else {
+                        return nil
+                    }
+                    
+                    return currentUser == myId ? chatUser : (chatUser == myId ? currentUser : nil)
+
+                }
+                
+                //print("✅✅✅:",opponentIds)
+
+                let users = try await SupabaseManager.shared.fetchMutipleUserProfile(opponentIds)
+                messageStore.user = users
+            } catch {
+                print("❌ 拉取会话列表失败：\(error)")
+            }
+        }
+
+        
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.large)
     }
     
     private func getLastMessage(for userId: UUID) -> Message? {
         return messages
-            .filter { $0.senderId == userId || $0.receiverId == userId }
+            .filter { $0.sender == userId || $0.receiver == userId }
             .sorted { $0.createdAt > $1.createdAt }
             .first
     }
@@ -238,14 +330,17 @@ struct ConversationsList: View {
 }
 
 // Sample Data
-let sampleUsers: [User] = [
-    User(id: UUID(), username: "Alex Johnson", profilePicture: nil, bio: "Gym enthusiast looking for workout buddies"),
-    User(id: UUID(), username: "Sarah Chen", profilePicture: nil, bio: "UCL student studying Computer Science"),
-    User(id: UUID(), username: "Mike Rodriguez", profilePicture: nil, bio: "Frontend developer, hackathon lover"),
-    User(id: UUID(), username: "Emma Wilson", profilePicture: nil, bio: "Guitarist and vocalist, indie music fan"),
-    User(id: UUID(), username: "David Thompson", profilePicture: nil, bio: "Amateur photographer, nature lover"),
-    User(id: UUID(), username: "Lisa Park", profilePicture: nil, bio: "Vegan chef, recipe collector")
-]
+//let sampleUsers: [User] = [
+//    User(id: UUID(), username: "Alex Johnson", profilePicture: nil, bio: "Gym enthusiast looking for workout buddies"),
+//    User(id: UUID(), username: "Sarah Chen", profilePicture: nil, bio: "UCL student studying Computer Science"),
+//    User(id: UUID(), username: "Mike Rodriguez", profilePicture: nil, bio: "Frontend developer, hackathon lover"),
+//    User(id: UUID(), username: "Emma Wilson", profilePicture: nil, bio: "Guitarist and vocalist, indie music fan"),
+//    User(id: UUID(), username: "David Thompson", profilePicture: nil, bio: "Amateur photographer, nature lover"),
+//    User(id: UUID(), username: "Lisa Park", profilePicture: nil, bio: "Vegan chef, recipe collector")
+//]
+
+
+/*
 
 let sampleMessages: [Message] = [
     // Conversation with Alex
@@ -276,6 +371,7 @@ let sampleMessages: [Message] = [
     Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Absolutely! Do you have any favorite vegan restaurants in Camden?", imageURL: nil, createdAt: Date().addingTimeInterval(-21500), isRead: true),
     Message(id: UUID(), senderId: UUID(), receiverId: UUID(), text: "Yes! There's this amazing place called 'Green Earth'. We should go together!", imageURL: nil, createdAt: Date().addingTimeInterval(-21400), isRead: false)
 ]
+*/
 
 #Preview {
     MessagesView()

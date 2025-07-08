@@ -41,14 +41,15 @@ public struct Post: Identifiable, Codable {
             username         = try c.decode(String.self,  forKey: .username)
             //photos           = try c.decodeIfPresent([String].self, forKey: .photos)
             if let arr = try? c.decodeIfPresent([String].self, forKey: .photos) {
-                        photos = arr
-                    } else if let single = try? c.decodeIfPresent(String.self, forKey: .photos) {
-                        // 如果后端给了单个 URL 字符串，把它包成长度为 1 的数组
-                        photos = [single]
-                    } else {
-                        // null 或者根本没字段时，都设成 nil (或 [])
-                        photos = nil
-                    }
+              photos = arr
+            }
+            else if let raw = try? c.decodeIfPresent(String.self, forKey: .photos),
+                    let data = raw.data(using: .utf8),
+                    let arr2 = try? JSONDecoder().decode([String].self, from: data) {
+              photos = arr2
+            } else {
+              photos = nil
+            }
             mainCaption      = try c.decode(String.self,  forKey: .mainCaption)
             detailedCaption  = try c.decodeIfPresent(String.self, forKey: .detailedCaption)
             subject          = try c.decode(String.self,  forKey: .subject)

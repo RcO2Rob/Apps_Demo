@@ -105,6 +105,7 @@ struct EditProfileView: View {
         print("Saving updated user: \(updatedUser)")
         userStore.updateProfile(updatedUser)
         updateChangesToDatabase(updatedUser)
+        updatePostToDatabase(updatedUser.id, updatedUser.username)
         dismiss()
     }
     
@@ -117,6 +118,17 @@ struct EditProfileView: View {
             }
         }
     }
+    
+    private func updatePostToDatabase(_ userId:UUID,_ username: String){
+        Task {
+            do{
+                try await SupabaseManager.shared.updatePost(userId, username)
+            }catch{
+                print("error ",error)
+            }
+        }
+    }
+    
 }
 
 #Preview {

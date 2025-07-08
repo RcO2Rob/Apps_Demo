@@ -83,7 +83,7 @@ struct UserPostsView: View {
                 .font(.headline)
             
             ForEach(posts) { post in
-                PostCard1(post: post)
+                PostCard1(post: post, onAvatarTap: { _ in})
                     .overlay(alignment: .topTrailing) {
                         if isCurrentUser {
                             PostMenuView(
@@ -253,7 +253,7 @@ struct ProfileView: View {
                                     .foregroundColor(.blue)
                             }
                             
-                            PostCard1(post: pinned)
+                            PostCard2(post: pinned)
                                 .overlay(alignment: .topTrailing) {
                                     if isCurrentUser {
                                         PostMenuView(
@@ -287,7 +287,7 @@ struct ProfileView: View {
                             .padding()
                     } else {
                         ForEach(userPosts) { post in
-                            PostCard1(post: post)
+                            PostCard2(post: post)
                                 .overlay(alignment: .topTrailing) {
                                     if isCurrentUser {
                                         PostMenuView(

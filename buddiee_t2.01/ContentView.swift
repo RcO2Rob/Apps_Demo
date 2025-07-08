@@ -50,11 +50,18 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @State private var showingCreateOptions = false
     @State private var shouldNavigateToFeed = false
+    @State private var navigatedFromAvatarTap = false
 
+    @State private var selectedUserId: UUID? = nil
+    
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationView {
-                PostsFeedView()
+                PostsFeedView(onAvatarTap: { userId in
+                    self.selectedUserId = userId
+                    self.navigatedFromAvatarTap = true
+                    self.selectedTab = 3 // 👈 Messages tab 的 tag
+                })
             }
             .tabItem {
                 Image(systemName: "doc.text.fill")
@@ -76,7 +83,7 @@ struct ContentView: View {
                     Text("Location")
                 }
                 .tag(2)
-            MessagesView()
+            MessagesView(initialUserId: selectedUserId)
                 .tabItem {
                     Image(systemName: "message.fill")
                     Text("Messages")
@@ -115,6 +122,16 @@ struct ContentView: View {
                     shouldNavigateToFeed = false
                 }
             }
+        }
+        .onChange(of: selectedTab) {_, newValue in
+            if newValue == 3 {
+                    // ✅ 如果不是通过点击头像进来的，才清空
+                    if !navigatedFromAvatarTap {
+                        selectedUserId = nil
+                    }
+                    // ✅ 无论如何都重置标志
+                    navigatedFromAvatarTap = false
+                }
         }
     }
 }
