@@ -142,7 +142,13 @@ struct SignUpView: View {
             showUI = true
         }
         .fullScreenCover(isPresented: $showProfileSetup) {
-            ProfileSetupView()
+            ProfileSetupView() {
+                // This closure will be called when profile setup is complete
+                self.showProfileSetup = false
+                // Here you might want to trigger the login completion logic
+                // For example, by calling a method on a shared app state object
+                // that switches the main view to ContentView.
+            }
         }
     }
 
@@ -160,7 +166,7 @@ struct SignUpView: View {
                 try await SupabaseManager.shared.signUp(email: email, password: password)
                 // 注册成功后，显示资料设置页面
                 await MainActor.run {
-                    showProfileSetup = true
+                    showProfileSetup = false
                 }
             } catch {
                 await MainActor.run {

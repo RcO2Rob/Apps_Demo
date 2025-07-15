@@ -9,7 +9,11 @@ class MessageStore: ObservableObject {
     @Published var messages: [Message] = []
     @Published var user: [User] = []
     
-    var channel: RealtimeChannelV2?
+    var hasUnreadMessages: Bool {
+        messages.contains { !$0.isRead && $0.receiver == userStore.currentUser?.id }
+    }
+    
+    private var pollingTimer: Timer?
     
     var conversationID : String?// Optional to allow for no conversation selected
     
@@ -30,6 +34,46 @@ class MessageStore: ObservableObject {
         //fetchMessages()
         
     }
+
+    func startPolling(every interval: TimeInterval = 2.0) {
+        // Invalidate any existing timer to avoid duplicates
+        stopPolling()
+        // Fetch messages immediately when polling starts
+        fetchMessages()
+        // Schedule a new timer
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.fetchMessages()
+        }
+    }
+
+    func stopPolling() {
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+    }
+
+    func unreadMessageCount(for conversationId: String) -> Int {
+        messages.filter { $0.conversationId == conversationId && !$0.isRead && $0.receiver == userStore.currentUser?.id }.count
+    }
+
+    func markConversationAsRead(conversationId: String) {
+        let unreadMessages = messages.filter { $0.conversationId == conversationId && !$0.isRead }
+        guard !unreadMessages.isEmpty else { return }
+
+        for message in unreadMessages {
+            if let index = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[index].isRead = true
+            }
+        }
+
+        Task {
+            do {
+                let messageIds = unreadMessages.map { $0.id }
+                try await SupabaseManager.shared.markMessagesAsRead(messageIds)
+            } catch {
+                print("❌ Failed to mark messages as read: \(error)")
+            }
+        }
+    }
     
     func sendChat(_ user: User){
         self.user.append(user)
@@ -38,13 +82,7 @@ class MessageStore: ObservableObject {
     func sendMessage(_ message: Message){
         
     }
-    
-//    func addMessageIfNotExists(_ message: Message) {
-//        if !messages.contains(where: { $0.id == message.id }) {
-//            messages.append(message)
-//        }
-//    }
-    
+      
     
     func fetchMessages() {
         Task{
@@ -62,45 +100,15 @@ class MessageStore: ObservableObject {
         }
     }
     
-    
-    func markAsRead(_ message: Message) {}
-    
-        // MARK: - 订阅某个会话的实时消息
-        /// 传入当前打开的会话 id
-    func startListening(conversationID: String) async throws {
-
-        try await stopListening()
-        let conversationID = conversationID // 直接赋值
-
-        // 通道名字随意，但保持唯一即可
-        let name = "test"
-        let chan = SupabaseManager.shared.client.channel(name)
-        
-        // 只监听 messages 表针对该会话行的 Insert
-        let _ = chan.onPostgresChange(
-            InsertAction.self,
-            schema: "public",
-            //table: "messages",
-            //filter: #"conversation_id=eq."\#(conversationID)""# // 行过滤
-        ) {
-            insert in
-              print("Inserted: \(insert.record)")
-        }
-
-        // 真正建立 websocket
-        await chan.subscribe()
-        print("Subscribed to channel: \(name)")
-        self.channel = chan
-    }
-
-    /// 退出聊天页时调用
-    func stopListening() async throws {
-        try await channel?.unsubscribe()
-        print("Unsubscribed from channel")
-        channel = nil
-        conversationID = nil
+    func deleteConversation(with userId: UUID) {
+       // Remove the user from the local list
+        user.removeAll { $0.id == userId }
+       //TODO: Add database deletion logic here
+          Task {
+               try? await SupabaseManager.shared.deleteConversation(with: userId)
+          }
+        print("DEBUG: Conversation with user \(userId) deleted locally.")
     }
     
     
 }
-

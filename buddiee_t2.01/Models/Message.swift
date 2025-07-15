@@ -1,6 +1,6 @@
 import Foundation
 
-struct Message: Identifiable, Codable {
+struct Message: Identifiable, Codable, Equatable {
     let id: UUID
     let sender: UUID
     let receiver: UUID
@@ -8,5 +8,5 @@ struct Message: Identifiable, Codable {
     let text: String
     let imageURL: String?
     let createdAt: Date
-    let isRead: Bool
-} 
+    var isRead: Bool
+}

@@ -92,6 +92,7 @@ struct ContentView: View {
                     Image(systemName: "message.fill")
                     Text("Messages")
                 }
+                .badge(messageStore.hasUnreadMessages ? " " : nil)
                 .tag(3)
             if let user = userStore.currentUser{
                 ProfileView(user: user)
@@ -110,9 +111,12 @@ struct ContentView: View {
                     .tag(4)
             }
         }
-        .environmentObject(postStore)
-        .environmentObject(userStore)
+        .onAppear(perform: {
+            messageStore.startPolling()
+        })
         .environmentObject(messageStore)
+        .environmentObject(userStore)
+        .environmentObject(postStore)
         .environmentObject(locationStore)
         .environmentObject(historyStore)
         .sheet(isPresented: $showingCreateOptions) {

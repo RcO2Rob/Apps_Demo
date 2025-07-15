@@ -296,7 +296,38 @@ class SupabaseManager: ObservableObject {
         }
     }
 
-
+    // MARK: - mark messages as read
+    func markMessagesAsRead(_ messageIds: [UUID]) async throws {
+        guard !messageIds.isEmpty else { return }
+        do{
+            let response = try await client
+                .from("messages")
+                .update(["isRead": true])
+                .in("id", value: messageIds)
+                .execute()
+            print("✅ 标记消息为已读成功：", response.data)
+        }catch{
+            print("❌ 标记消息为已读失败：", error)
+            
+        }
+    }
+    
+    // MARK: - delete conversation
+    func deleteConversation(with userId: UUID) async throws {
+        guard let myId = client.auth.currentUser?.id else {return}
+        // 删除会话记录
+        do{
+            let _ = try await client
+                .from("conversation_list")
+                .delete()
+                .eq("current_user", value: myId)
+                .eq("chat_user", value: userId)
+                .execute()
+            print("✅ 删除会话记录成功")
+        } catch {
+            print("❌ 删除会话记录失败：", error)
+        }
+    }
 
 }
 

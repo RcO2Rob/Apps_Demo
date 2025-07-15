@@ -7,7 +7,7 @@ struct ProfileSetupView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showContentView: Bool = false
     
-
+    var onSetupComplete: (() -> Void)?
     
     @State private var username = ""
     @State private var bio = ""
@@ -17,82 +17,73 @@ struct ProfileSetupView: View {
     @State private var errorMessage: String?
     
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("个人头像")) {
-                    HStack {
-                        Spacer()
-                        if let selectedImage {
-                            Image(uiImage: selectedImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                        } else {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 100, height: 100)
-                                .foregroundColor(.blue)
-                        }
-                        Spacer()
+        Form {
+            Section(header: Text("个人头像")) {
+                HStack {
+                    Spacer()
+                    if let selectedImage {
+                        Image(uiImage: selectedImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(.blue)
                     }
-                    .padding(.vertical)
-                    
-                    PhotosPicker(selection: $photoPickerItem,
-                               matching: .images,
-                               photoLibrary: .shared()) {
-                        Text("选择头像")
-                            .frame(maxWidth: .infinity)
-                    }
+                    Spacer()
                 }
+                .padding(.vertical)
                 
-                Section(header: Text("基本信息")) {
-                    TextField("用户名", text: $username)
-                        .textContentType(.username)
-                }
-                
-                Section(header: Text("个人简介")) {
-                    TextEditor(text: $bio)
-                        .frame(minHeight: 100)
-                }
-                
-                if let error = errorMessage {
-                    Section {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.subheadline)
-                    }
+                PhotosPicker(selection: $photoPickerItem,
+                           matching: .images,
+                           photoLibrary: .shared()) {
+                    Text("选择头像")
+                        .frame(maxWidth: .infinity)
                 }
             }
-            .navigationTitle("完善个人资料")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
-                        saveProfile()
-                        print(supabase.currentUser?.id)
-                        showContentView = true
-                    }
-                    .disabled(isLoading || username.isEmpty)
-                }
+            
+            Section(header: Text("基本信息")) {
+                TextField("用户名", text: $username)
+                    .textContentType(.username)
             }
-            .onChange(of: photoPickerItem) {
-                Task {
-                    if let data = try? await photoPickerItem?.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        selectedImage = image
-                    }
+            
+            Section(header: Text("个人简介")) {
+                TextEditor(text: $bio)
+                    .frame(minHeight: 100)
+            }
+            
+            if let error = errorMessage {
+                Section {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .font(.subheadline)
                 }
             }
         }
-        NavigationLink(
-            destination: ContentView(),
-            isActive: $showContentView
-        ) {
-            EmptyView()
+        .navigationTitle("完善个人资料")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("完成") {
+                    saveProfile()
+                    print(supabase.currentUser?.id)
+                }
+                .disabled(isLoading || username.isEmpty)
+            }
         }
-        .hidden()
+        .onChange(of: photoPickerItem) {
+            Task {
+                if let data = try? await photoPickerItem?.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    selectedImage = image
+                }
+            }
+        }
     }
     
     private func saveProfile() {
@@ -120,7 +111,7 @@ struct ProfileSetupView: View {
                 
                 // 完成设置，关闭页面
                 await MainActor.run {
-                    dismiss()
+                    onSetupComplete?()
                 }
             } catch {
                 await MainActor.run {

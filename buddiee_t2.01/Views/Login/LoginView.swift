@@ -21,7 +21,7 @@ struct LoginView: View {
     var onSkip: (() -> Void)?
     
     var body: some View {
-        NavigationView {
+        NavigationView { 
             ZStack {
                 // 1. 渐变背景
                 LinearGradient(
