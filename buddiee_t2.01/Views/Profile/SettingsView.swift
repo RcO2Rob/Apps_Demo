@@ -19,38 +19,38 @@ struct SettingsView: View {
         NavigationView {
             Form {
                 // Profile Section
-                Section("Profile") {
-                    HStack {
-                        Text("Profile Photo")
-                        Spacer()
-                        Button(action: { showingImagePicker = true }) {
-                            if let profileImage = profileImage {
-                                profileImage
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 60, height: 60)
-                                    .clipShape(Circle())
-                            } else {
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .frame(width: 60, height: 60)
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                    }
+//                Section("Profile") {
+//                    HStack {
+//                        Text("Profile Photo")
+//                        Spacer()
+//                        Button(action: { showingImagePicker = true }) {
+//                            if let profileImage = profileImage {
+//                                profileImage
+//                                    .resizable()
+//                                    .scaledToFill()
+//                                    .frame(width: 60, height: 60)
+//                                    .clipShape(Circle())
+//                            } else {
+//                                Image(systemName: "person.circle.fill")
+//                                    .resizable()
+//                                    .frame(width: 60, height: 60)
+//                                    .foregroundColor(.gray)
+//                            }
+//                        }
+//                    }
                     
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Bio")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        TextEditor(text: $bio)
-                            .frame(minHeight: 100)
-                            .padding(8)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
-                    }
-                }
+//                    VStack(alignment: .leading, spacing: 8) {
+//                        Text("Bio")
+//                            .font(.subheadline)
+//                            .foregroundColor(.secondary)
+//                        
+//                        TextEditor(text: $bio)
+//                            .frame(minHeight: 100)
+//                            .padding(8)
+//                            .background(Color(.systemGray6))
+//                            .cornerRadius(8)
+//                    }
+//                }
                 
                 // Privacy Section
                 Section("Privacy") {

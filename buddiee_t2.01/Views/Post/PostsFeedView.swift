@@ -32,7 +32,7 @@ struct PostsFeedView: View {
             }
             .padding(.horizontal)
         }
-        .navigationTitle("Buddiee")
+        //.navigationTitle("Buddiee")
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Button(action: {
@@ -47,6 +47,7 @@ struct PostsFeedView: View {
                             .font(.title2).bold()
                             .foregroundColor(.primary)
                     }
+                    
                 }
                 .buttonStyle(PlainButtonStyle())
                 .accessibilityLabel("Refresh Feed")
@@ -70,4 +71,4 @@ struct PostsFeedView: View {
 //        PostsFeedView()
 //            .environmentObject(PostStore())
 //    }
-//} 
+//}

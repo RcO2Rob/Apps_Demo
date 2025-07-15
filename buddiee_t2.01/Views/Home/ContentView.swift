@@ -70,19 +70,23 @@ struct ContentView: View {
             .tag(0)
             
             // Create Post Button View
-            CreatePostButtonView(showingCreateOptions: $showingCreateOptions)
-                .tabItem {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Create")
-                }
-                .tag(1)
-            
             LocationView()
                 .tabItem {
                     Image(systemName: "map.fill")
                     Text("Location")
                 }
+                .tag(1)
+            
+            
+            // 直接显示创建选项的占位视图
+            CreateTabPlaceholderView()
+                .tabItem {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Create")
+                }
                 .tag(2)
+            
+            
             MessagesView(initialUserId: selectedUserId)
                 .tabItem {
                     Image(systemName: "message.fill")
@@ -131,12 +135,29 @@ struct ContentView: View {
                     }
                     // ✅ 无论如何都重置标志
                     navigatedFromAvatarTap = false
+                } else if newValue == 2 {
+                    // 当点击Create标签时，直接显示创建选项
+                    showingCreateOptions = true
+                    // 立即切换回之前的标签页，避免停留在空的Create页面
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        selectedTab = 0 // 切换回Posts页面
+                    }
                 }
         }
     }
 }
 
+// 创建标签页的占位视图
+struct CreateTabPlaceholderView: View {
+    var body: some View {
+        // 这个视图用户实际上不会看到，因为会立即弹出创建选项
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 // Create Post Button View
+/*
 struct CreatePostButtonView: View {
     @Binding var showingCreateOptions: Bool
     
@@ -166,6 +187,7 @@ struct CreatePostButtonView: View {
         .background(Color(.systemBackground))
     }
 }
+ */
 
 // Create Post Options Overlay View
 struct CreatePostOptionsView: View {
@@ -333,7 +355,7 @@ struct PostsFeedView_TabPlaceholder: View {
 
 struct LocationView: View {
     var body: some View {
-        Text("Location Map")
+        LocationFinderView()
     }
 }
 
@@ -374,4 +396,5 @@ struct ScaleButtonStyle: ButtonStyle {
 #Preview {
     ContentView()
         .environmentObject(PostStore())
+        .environmentObject(UserStore())
 }

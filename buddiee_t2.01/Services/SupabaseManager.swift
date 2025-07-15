@@ -20,6 +20,9 @@ class SupabaseManager: ObservableObject {
         client = SupabaseClient(
             supabaseURL: URL(string: "https://mdhxjzxgdrhrqqdpobia.supabase.co")!,
             supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kaHhqenhnZHJocnFxZHBvYmlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzNzQ2NjcsImV4cCI6MjA2Njk1MDY2N30.mPYlTt5BLUvi20KVFRhZeco0dflwpAJKsYPNWA8mKm4",
+            options: SupabaseClientOptions(
+                realtime: .init()
+              )
         )
         
         self.currentUser = client.auth.currentUser
@@ -34,7 +37,40 @@ class SupabaseManager: ObservableObject {
                 print("📌 Auth state changed. Current user: \(String(describing: user))")
             }
         }
+        
+        testRealtimeConnection()
+        
     }
+    
+    func testRealtimeConnection() {
+        let channel = client.channel("chat_room")
+
+        let _ = channel.onBroadcast(event: "broadcast") { message in
+          print("Cursor position received", message)
+        }
+
+        Task {
+            await channel.subscribe()
+            try await channel.broadcast(event: "broadcast", message:["text": "Hello!"])
+        }
+
+//        let testChannel = client.channel("test_debug")
+//
+//        let _ = testChannel.onPostgresChange(
+//            InsertAction.self,
+//            schema: "public",
+//            table: "messages"
+//        ) { payload in
+//            print("✅ 收到插入事件！内容：", payload.record)
+//        }
+//
+//        Task {
+//            await testChannel.subscribe()
+//            print("status:",testChannel.status)
+//            print("📡 Realtime 订阅已触发 test_debug")
+//        }
+    }
+
     
     func signIn(email: String, password: String) async throws {
         let authResponse = try await client.auth.signIn(
@@ -87,7 +123,7 @@ class SupabaseManager: ObservableObject {
         // 这一行如果插入失败，会直接 throw
         try await client
           .from("posts")
-          .insert(post)
+          .upsert(post)
           .execute()
       }
     
@@ -260,38 +296,7 @@ class SupabaseManager: ObservableObject {
         }
     }
 
-//    func fetchMessages() async throws -> [Message] {
-//        
-//        do{
-//            let myId = client.auth.currentUser?.id
-//            let response = try await client
-//                .from("messages")
-//                .select()
-//                .eq("sender", value: myId)  // 只匹配 sender = myId
-//                .order("createdAt", ascending: true)
-//                .execute()
-//            
-//            
-//            let formatter = DateFormatter()
-//            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-//            formatter.locale = Locale(identifier: "en_US_POSIX")
-//            formatter.timeZone = TimeZone(secondsFromGMT: 0)
-//            
-//            
-//            let decoder = JSONDecoder()
-//            decoder.dateDecodingStrategy = .formatted(formatter)
-//            
-//            let messages = try decoder.decode([Message].self, from: response.data)
-//            
-//            return messages
-//            
-//        }catch{
-//            print("时间有错误：", error)
-//        }
-//        //print(messages)
-//        
-//        return []
-//    }
+
 
 }
 

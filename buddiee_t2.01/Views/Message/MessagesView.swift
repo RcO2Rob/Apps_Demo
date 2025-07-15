@@ -10,20 +10,17 @@ struct MessagesView: View {
     @EnvironmentObject var messageStore: MessageStore
     
     
-    
-    
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Group {
                 if let selectedUserId = selectedUserId {
-                    
                     ChatView(
                         userId: selectedUserId,
                         messages: messageStore.messages.filter { $0.sender == selectedUserId || $0.receiver == selectedUserId },
                         messageText: $messageText,
                         onSend: sendMessage,
                         onBack: { self.selectedUserId = nil }
-                    )
+                    ).navigationBarHidden(true)
                 } else {
                     ConversationsList(
                         conversations: messageStore.user,
@@ -37,6 +34,7 @@ struct MessagesView: View {
             }
             .onAppear(perform: messageStore.fetchMessages)
         }
+        .toolbar(selectedUserId != nil ? .hidden : .visible, for: .tabBar)
         .task {
             if selectedUserId == nil, let id = initialUserId {
                 selectedUserId = id
@@ -63,17 +61,26 @@ struct MessagesView: View {
             id: UUID(),
             sender: userStore.currentUser!.id, // Replace with actual current user ID
             receiver: selectedUserId,
+            conversationId: conversationIDText(userA: userStore.currentUser!.id, userB: selectedUserId),
             text: messageText,
             imageURL: nil,
             createdAt: Date(),
             isRead: false
         )
         
+        //messageStore.addMessageIfNotExists(newMessage)
         messageStore.messages.append(newMessage)
         Task{
             try await SupabaseManager.shared.sendMessage(newMessage)
         }
         messageText = ""
+    }
+    
+    
+    func conversationIDText(userA: UUID, userB: UUID) -> String {
+        // 排序保证无论谁在前都一样
+        let sorted = [userA.uuidString, userB.uuidString].sorted()
+        return sorted.joined(separator: "_")
     }
     
 }
@@ -88,7 +95,16 @@ struct ChatView: View {
     let onSend: () -> Void
     let onBack: () -> Void
     @EnvironmentObject var messageStore: MessageStore
+    @State private var lastMessageId: UUID?
+    @State private var scrollToBottomTrigger: Bool = false
     
+    var conversationID: String {
+            // 建议你有一个统一的 conversationID 生成方法
+            // 例如两个 userId 拼接后 md5，保证唯一且顺序无关
+            let currentUserId = SupabaseManager.shared.currentUser!.id
+            return conversationIDText(userA: currentUserId, userB: userId)
+        }
+
     
     var body: some View {
         VStack {
@@ -101,10 +117,25 @@ struct ChatView: View {
                 
                 if let user = messageStore.user.first(where: { $0.id == userId }) {
                     HStack(spacing: 8) {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .frame(width: 32, height: 32)
-                            .foregroundColor(.blue)
+                        if let profilePicture = user.profilePicture,
+                               let url = URL(string: profilePicture) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                                .frame(width: 32, height: 32)
+                                .clipShape(Circle())
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(Circle())
+                                    .foregroundColor(.gray)
+                            }
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text(user.username)
@@ -128,13 +159,32 @@ struct ChatView: View {
             .shadow(color: .gray.opacity(0.2), radius: 1, y: 1)
             
             // Messages
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(messages.sorted(by: { $0.createdAt < $1.createdAt })) { message in
-                        MessageBubble(message: message)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        ForEach(messages.sorted(by: { $0.createdAt < $1.createdAt })) { message in
+                            MessageBubble(message: message)
+                                .id(message.id)
+                        }
                     }
+                    .padding()
                 }
-                .padding()
+                .onChange(of: scrollToBottomTrigger) { _, newValue in
+                        if newValue, let last = messages.last {
+                            withAnimation {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                .onAppear {
+                    // 初次进入自动滚动到底
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                if let last = messages.last {
+                                    proxy.scrollTo(last.id, anchor: .bottom)
+                                }
+                            }
+                }
+             
             }
             
             // Message Input
@@ -143,7 +193,12 @@ struct ChatView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal)
                 
-                Button(action: onSend) {
+                Button(action: {
+                    onSend()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            scrollToBottomTrigger.toggle()
+                        }
+                }) {
                     Image(systemName: "paperplane.fill")
                         .foregroundColor(.white)
                         .padding(8)
@@ -163,7 +218,30 @@ struct ChatView: View {
                 print("❌:",error)
             }
         }
+        .task {
+            // ✅ 进入聊天详情页时，开启实时监听
+            do {
+                try await messageStore.startListening(conversationID: conversationID)
+            } catch {
+                print("❌ startListening error:", error)
+            }
+        }
+        .onDisappear {
+                    // ✅ 离开聊天详情页时，关闭监听
+            Task {
+                try? await messageStore.stopListening()
+            }
+        }
     }
+    
+    
+    func conversationIDText(userA: UUID, userB: UUID) -> String {
+        // 排序保证无论谁在前都一样
+        let sorted = [userA.uuidString, userB.uuidString].sorted()
+        return sorted.joined(separator: "_")
+    }
+
+    
 }
 
 struct MessageBubble: View {
@@ -220,10 +298,29 @@ struct ConversationsList: View {
             ForEach(conversations) { user in
                 Button(action: { onSelectUser(user) }) {
                     HStack(spacing: 12) {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .frame(width: 50, height: 50)
-                            .foregroundColor(.blue)
+//                        Image(systemName: "person.circle.fill")
+//                            .resizable()
+//                            .frame(width: 50, height: 50)
+//                            .foregroundColor(.blue)
+                        if let profilePicture = user.profilePicture,
+                               let url = URL(string: profilePicture) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                                    .foregroundColor(.gray)
+                            }
                         
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
@@ -265,7 +362,7 @@ struct ConversationsList: View {
                     print("❌ 当前用户为空，跳过会话请求")
                     return
                 }
-
+                //print("❌ 当前用户 ID:", myId)
                 let response = try await SupabaseManager.shared.client
                     .from("conversation_list")
                     .select("current_user, chat_user, created_at")
@@ -277,7 +374,7 @@ struct ConversationsList: View {
                 let data = response.data
                 let rawList = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
                 
-                print("✅✅✅:",rawList)
+                //print("✅✅✅:",rawList)
 
                 let opponentIds: [UUID] = rawList.compactMap { row in
                     guard let currentUserString = row["current_user"] as? String,
@@ -375,4 +472,7 @@ let sampleMessages: [Message] = [
 
 #Preview {
     MessagesView()
+        .environmentObject(MessageStore())
+        .environmentObject(UserStore())
+        
 }

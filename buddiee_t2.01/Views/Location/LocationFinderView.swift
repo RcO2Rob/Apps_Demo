@@ -16,6 +16,8 @@ struct LocationFinderView: View {
     @State private var showingPostDetail = false
     @State private var filterRadius: Double = 10.0 // km
     @State private var showingFilters = false
+    @State private var isSearching = false // 添加搜索状态
+    @State private var searchResults: [Post] = [] // 搜索结果
     
     init(selectedLocation: Binding<String?>? = nil) {
         self._selectedLocation = selectedLocation ?? .constant(nil)
@@ -78,11 +80,27 @@ struct LocationFinderView: View {
                 
                 // Search and Filter Section
                 VStack(spacing: 12) {
-                    // Search Bar
+                    // Search Bar with loading indicator
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
                         TextField("Search locations or users...", text: $searchText)
+                            .onSubmit {
+                                performSearch()
+                            }
+                        
+                        if isSearching {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else if !searchText.isEmpty {
+                            Button(action: { 
+                                searchText = ""
+                                searchResults = []
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.gray)
+                            }
+                        }
                     }
                     .padding()
                     .background(Color(.systemGray6))
@@ -177,15 +195,91 @@ struct LocationFinderView: View {
             .onChange(of: locationManager.currentAddress) { oldValue, newValue in
                 selectedLocation = newValue
             }
+            .onChange(of: searchText) { oldValue, newValue in
+                // 实时搜索（防抖）
+                if newValue.isEmpty {
+                    searchResults = []
+                } else {
+                    // 添加简单的防抖延迟
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if searchText == newValue { // 确保用户还在输入同样的文本
+                            performSearch()
+                        }
+                    }
+                }
+            }
         }
     }
     
+    // 实现真正的搜索功能
     private var filteredPosts: [Post] {
-        postStore.posts.filter { post in
+        // 获取有位置信息的帖子
+        let postsWithLocation = postStore.posts.filter { post in
             if let loc = post.userLocation, !loc.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return true
             }
             return false
+        }
+        
+        // 如果有搜索结果，优先显示搜索结果
+        let baseResults = searchResults.isEmpty ? postsWithLocation : searchResults
+        
+        // 如果没有搜索文本，返回所有有位置的帖子
+        guard !searchText.isEmpty else {
+            return baseResults
+        }
+        
+        // 本地过滤：根据搜索文本过滤帖子
+        return baseResults.filter { post in
+            let searchLower = searchText.lowercased()
+            return post.username.lowercased().contains(searchLower) ||
+                   post.mainCaption.lowercased().contains(searchLower) ||
+                   (post.location?.lowercased().contains(searchLower) ?? false) ||
+                   (post.userLocation?.lowercased().contains(searchLower) ?? false) ||
+                   post.subject.lowercased().contains(searchLower) ||
+                   (post.detailedCaption?.lowercased().contains(searchLower) ?? false)
+        }
+    }
+    
+    // 执行搜索（包括数据库查询）
+    private func performSearch() {
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            searchResults = []
+            return
+        }
+        
+        isSearching = true
+        
+        // TODO: 实现数据库搜索
+        Task {
+            do {
+                // 这里应该调用 SupabaseManager 的搜索方法
+                // let results = try await SupabaseManager.shared.searchPosts(query: searchText)
+                
+                // 目前使用本地搜索作为占位
+                let localResults = postStore.posts.filter { post in
+                    let searchLower = searchText.lowercased()
+                    return post.username.lowercased().contains(searchLower) ||
+                           post.mainCaption.lowercased().contains(searchLower) ||
+                           (post.location?.lowercased().contains(searchLower) ?? false) ||
+                           (post.userLocation?.lowercased().contains(searchLower) ?? false) ||
+                           post.subject.lowercased().contains(searchLower)
+                }
+                
+                await MainActor.run {
+                    self.searchResults = localResults
+                    self.isSearching = false
+                }
+                
+                print("🔍 Search completed for: '\(searchText)', found \(localResults.count) results")
+                
+            } catch {
+                await MainActor.run {
+                    self.isSearching = false
+                    self.searchResults = []
+                }
+                print("❌ Search error: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -264,4 +358,4 @@ struct LocationFinderView: View {
 #Preview {
     LocationFinderView(selectedLocation: .constant(nil))
         .environmentObject(PostStore())
-} 
+}

@@ -8,6 +8,7 @@ import SwiftUI
 struct PostCard1: View {
     let post: Post
     @EnvironmentObject private var postStore: PostStore
+    @EnvironmentObject private var userStore: UserStore
     @State private var showingDetail = false
     @State private var showingComments = false
     
@@ -72,12 +73,25 @@ struct PostCard1: View {
                     Button(action: {
                         onAvatarTap(post.userId)
                     }){
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 35, height: 35)
-                            .clipShape(Circle())
-                            .foregroundColor(.gray)
+                        if let profilePicture = getUserProfilePicture(userId: post.userId),
+                               let url = URL(string: profilePicture) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                                .frame(width: 32, height: 32)
+                                .clipShape(Circle())
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(Circle())
+                                    .foregroundColor(.gray)
+                            }
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
@@ -197,6 +211,19 @@ struct PostCard1: View {
         .frame(maxWidth: .infinity)
         .background(Color.gray.opacity(0.1))
     }
+    
+    func getUserProfilePicture(userId: UUID) -> String? {
+        var url: String?
+        Task{
+            let user = try await SupabaseManager.shared.fetchUserProfile(userId)
+            if(user != nil && user.profilePicture != nil){
+                url = user.profilePicture!
+            }
+            return url
+        }
+        return nil
+    }
+        
 }
 
 // MARK: - Preview

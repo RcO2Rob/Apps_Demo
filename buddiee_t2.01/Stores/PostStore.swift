@@ -41,6 +41,7 @@ class PostStore: ObservableObject {
         if let encoded = try? JSONEncoder().encode(posts) {
             userDefaults.set(encoded, forKey: postsKey)
         }
+        
     }
     
     private func loadPosts() {
@@ -117,6 +118,9 @@ class PostStore: ObservableObject {
     func addComment(_ comment: Comment, to post: Post) {
         if let index = posts.firstIndex(where: { $0.id == post.id }) {
             posts[index].comments.append(comment)
+            Task{
+                try await SupabaseManager.shared.savePost(posts[index])
+            }
             savePosts()
         }
     }
