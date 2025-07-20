@@ -18,8 +18,8 @@ class SupabaseManager: ObservableObject {
     
     private init() {
         client = SupabaseClient(
-            supabaseURL: URL(string: "https://mdhxjzxgdrhrqqdpobia.supabase.co")!,
-            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kaHhqenhnZHJocnFxZHBvYmlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzNzQ2NjcsImV4cCI6MjA2Njk1MDY2N30.mPYlTt5BLUvi20KVFRhZeco0dflwpAJKsYPNWA8mKm4",
+            supabaseURL: URL(string: "your_URL")!,
+            supabaseKey: "your_Key",
         )
         
         self.currentUser = client.auth.currentUser
